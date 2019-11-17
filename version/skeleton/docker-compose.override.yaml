@@ -1,0 +1,53 @@
+version: '3.4'
+
+services:
+  app:
+    build:
+      context: .
+      target: symfony_docker_php_dev
+    environment:
+      # See https://docs.docker.com/docker-for-mac/networking/#i-want-to-connect-from-a-container-to-a-service-on-the-host
+      # See https://github.com/docker/for-linux/issues/264
+      # The `remote_host` below may optionally be replaced with `remote_connect_back`
+      XDEBUG_CONFIG: >-
+        remote_enable=on
+        remote_autostart=off
+        remote_port=9000
+        remote_handler=dbgp
+        idekey=PHPSTORM
+        remote_connect_back=1
+      # This should correspond to the server declared in PHPStorm `Preferences | Languages & Frameworks | PHP | Servers`
+      # Then PHPStorm will use the corresponding path mappings
+#      PHP_IDE_CONFIG: serverName=symfony-docker
+
+  nginx:
+    ports:
+      - 
+    depends_on:
+      - db
+    links:
+      - db
+
+  frontend:
+    container_name: frontend
+    build: docker/frontend
+    volumes:
+      - ./:/srv/app
+    ports:
+      - 
+
+  db:
+    image: mariadb:10.4
+    restart: always
+    working_dir: /var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: admin
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    volumes:
+      - ./docker/mysql/docker-custom.cnf:/etc/mysql/conf.d/docker-custom.cnf
+    ports:
+      - 
+    command:
+      'mysqld --innodb-flush-method=fsync'
